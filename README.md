@@ -20,7 +20,7 @@ A lightweight Python utility class for simplified interaction with MySQL databas
 Install via pip (requires `sqlalchemy`, `pymysql`, and `pandas`):
 
 ```bash
-pip install sqlalchemy pymysql pandas
+pip install sqlalchemy_helper_tool
 ```
 
 Clone this repository if needed:
