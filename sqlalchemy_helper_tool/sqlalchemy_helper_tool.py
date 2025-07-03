@@ -6,25 +6,33 @@ class DbApi:
 		Usage:
 			dbApi = DbApi()
 	"""
-	def __init__(self, server, database, username, password, dict_params=None, dialect='mysql'):
+	def __init__(self, server, database, username, password, dict_params=None, dialect='mysql', driver=None):
 		self.server = server
 		self.database = database
 		self.username = username
 		self.password = password
-		self.con = 	self.connect(dict_params, dialect)
-
-	# Make connection to server
-	def connect(self, dict_params=None, dialect='mysql'):
-		if dialect == 'mysql':
+		self.dialect = dialect
+		self.driver = driver  # ← aquí se guarda el driver opcional
+		self.con = self.connect(dict_params)
+		
+	def connect(self, dict_params=None):
+		dict_params = dict_params or {}
+		
+		if self.dialect == 'mysql':
 			driver = 'pymysql'
 			url = f"mysql+{driver}://{self.username}:{self.password}@{self.server}/{self.database}"
-		elif dialect == 'mssql':
-			driver = 'pymssql'
-			url = f"mssql+{driver}://{self.username}:{self.password}@{self.server}/{self.database}"
+		
+		elif self.dialect == 'mssql':
+			driver = 'pyodbc'
+			odbc_driver = self.driver or 'ODBC Driver 17 for SQL Server'
+            # Replace spaces with "+"
+			# This is necessary because the driver name may contain spaces"
+			encoded_driver = odbc_driver.replace(' ', '+')
+			url = f"mssql+{driver}://{self.username}:{self.password}@{self.server}/{self.database}?driver={encoded_driver}"
 		else:
-			raise ValueError(f"Dialect '{dialect}' no soportado")
-
-		engine = create_engine(url, connect_args=dict_params or {})
+			raise ValueError(f"Dialect '{self.dialect}' no soportado")
+		
+		engine = create_engine(url, connect_args=dict_params)
 		return engine
 	
 	# Executes a raw SQL query
