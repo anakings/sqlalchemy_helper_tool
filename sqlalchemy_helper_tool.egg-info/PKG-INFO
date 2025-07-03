@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: sqlalchemy_helper_tool
-Version: 0.8.0
+Version: 1.0.0
 Summary: Package to work with mysql database from python
 Author-email: Anabel Reyes <anakings95@gmail.com>
 Maintainer-email: Anabel Reyes <anakings95@gmail.com>

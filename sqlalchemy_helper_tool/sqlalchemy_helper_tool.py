@@ -6,12 +6,12 @@ class DbApi:
 		Usage:
 			dbApi = DbApi()
 	"""
-	def __init__(self, server, database, username, password, dict_params=None):
+	def __init__(self, server, database, username, password, dict_params=None, dialect='mysql'):
 		self.server = server
 		self.database = database
 		self.username = username
 		self.password = password
-		self.con = 	self.connect(dict_params)
+		self.con = 	self.connect(dict_params, dialect)
 
 	# Make connection to server
 	def connect(self, dict_params=None, dialect='mysql'):
