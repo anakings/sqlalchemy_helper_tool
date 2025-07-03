@@ -14,15 +14,17 @@ class DbApi:
 		self.con = 	self.connect(dict_params)
 
 	# Make connection to server
-	def connect(self, dict_params=None):	
-		# create sqlalchemy engine
-		engine = create_engine("mysql+pymysql://{user}:{pw}@{server}/{db}"
-			 .format(user=self.username,
-				pw=self.password,
-				server=self.server,
-				db=self.database),
-				connect_args=dict_params
-				)
+	def connect(self, dict_params=None, dialect='mysql'):
+		if dialect == 'mysql':
+			driver = 'pymysql'
+			url = f"mysql+{driver}://{self.username}:{self.password}@{self.server}/{self.database}"
+		elif dialect == 'mssql':
+			driver = 'pymssql'
+			url = f"mssql+{driver}://{self.username}:{self.password}@{self.server}/{self.database}"
+		else:
+			raise ValueError(f"Dialect '{dialect}' no soportado")
+
+		engine = create_engine(url, connect_args=dict_params or {})
 		return engine
 	
 	# Executes a raw SQL query

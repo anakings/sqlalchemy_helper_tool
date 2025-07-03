@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sqlalchemy_helper_tool"
-version = "0.7.0"
+version = "0.8.0"
 description = "Package to work with mysql database from python"
 readme = "README.md"
 authors = [
