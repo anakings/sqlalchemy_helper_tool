@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, inspect
 import pandas as pd
 from urllib.parse import quote
+import math
 
 
 class DbApi:
@@ -127,23 +128,19 @@ class DbApi:
 
     # Like above, but handles nulls and escapes column names
     def write_sql_key2(self, df, table_name):
-        # Convert nul
-        df = df.where(df.notnull(), None)
-
-        # Clean columns name
+        # Clean column names
         columns = [f"`{col.strip().replace('`', '')}`" for col in df.columns]
         values_columns = ', '.join(columns)
-
-        # Placeholders for all columns
         tuple_ = ','.join(['%s'] * len(df.columns))
 
-        # Data like tuples
-        tuples = [tuple(x) for x in df.values]
+        # Conversión segura
+        tuples = [
+            tuple(None if isinstance(v, float) and math.isnan(v) or pd.isna(v) else v
+                for v in row)
+            for row in df.itertuples(index=False, name=None)
+        ]
 
-        # Final query
         query = f"INSERT IGNORE INTO `{self.database}`.`{table_name}` ({values_columns}) VALUES({tuple_})"
-
-        # Execute query
         id = self.con.execute(query, tuples)
     
     # Add new rows (if you add a row with a key that is already in table_name it will give an error)
