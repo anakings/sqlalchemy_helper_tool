@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 import pandas as pd
 from urllib.parse import quote
 import math
@@ -32,6 +32,7 @@ class DbApi:
         self.dict_params = dict_params or {}
 
         self.con = self.connect()
+        self.allowed_tables = self.load_allowed_tables() 
 
     def connect(self):
         if self.dialect == 'mysql':
@@ -77,10 +78,15 @@ class DbApi:
         else:
             raise ValueError(f"Unsupported dialect '{self.dialect}'")
     
-    # Executes a raw SQL query
+    def load_allowed_tables(self):
+        with self.con.connect() as conn:
+            inspector = inspect(conn)
+            return set(inspector.get_table_names(schema=self.database))
+    
     def execute_query(self, query):
-        id = self.con.execute(query)
-        return id
+        with self.con.connect() as conn: 
+            with conn.begin():
+                conn.execute(text(query))
 
     # Checks if table_name exists
     def table_in_db(self, table_name):
@@ -131,16 +137,20 @@ class DbApi:
         # Clean column names
         columns = [f"`{col.strip().replace('`', '')}`" for col in df.columns]
         values_columns = ', '.join(columns)
+
+        # Placeholders for all columns
         tuple_ = ','.join(['%s'] * len(df.columns))
 
-        # Conversión segura
         tuples = [
             tuple(None if isinstance(v, float) and math.isnan(v) or pd.isna(v) else v
                 for v in row)
             for row in df.itertuples(index=False, name=None)
         ]
 
+        # Final query
         query = f"INSERT IGNORE INTO `{self.database}`.`{table_name}` ({values_columns}) VALUES({tuple_})"
+
+        # Execute query
         id = self.con.execute(query, tuples)
     
     # Add new rows (if you add a row with a key that is already in table_name it will give an error)
@@ -185,3 +195,33 @@ class DbApi:
         tuples = ','.join([str(tuple(x)) for x in df.values])
 
         id = self.con.execute(f"INSERT INTO `{table_name}` ({values_columns}) VALUES {tuples} ON DUPLICATE KEY UPDATE `{column_replace}`=VALUES(`{column_replace}`);")
+
+    # Safe UPDATE method with dynamic conditions
+    def update_single_value(self, table_name, column_name, new_value, conditions: dict):
+        # Convert the new value to SQL-safe string
+        if isinstance(new_value, str):
+            new_value_str = f"'{new_value}'"
+        elif new_value is None:
+            new_value_str = "NULL"
+        else:
+            new_value_str = str(new_value)
+
+        # Build the WHERE clause from the conditions dictionary
+        condition_clauses = []
+        for key, value in conditions.items():
+            if value is None:
+                clause = f"{key} IS NULL"
+            elif isinstance(value, str):
+                clause = f"{key} = '{value}'"
+            else:
+                clause = f"{key} = {value}"
+            condition_clauses.append(clause)
+
+        where_clause = " AND ".join(condition_clauses)
+
+        # Construct the final SQL UPDATE query
+        query = f"UPDATE {table_name} SET {column_name} = {new_value_str} WHERE {where_clause}"
+
+        print(f"Executing query: {query}")  # Debugging output
+        # Execute the query using the existing method (no params or commit arguments)
+        self.execute_query(query)
