@@ -3,6 +3,19 @@ import pandas as pd
 from urllib.parse import quote
 import math
 
+def _apply_column_case(columns, column_case):
+    transformations = {
+        'upper': str.upper,
+        'lower': str.lower,
+        'capitalize': str.capitalize,
+        'title': str.title
+    }
+
+    func = transformations.get(column_case)
+
+    if func:
+        return [func(col) for col in columns]
+    return columns
 
 class DbApi:
     """
@@ -99,21 +112,24 @@ class DbApi:
         insp = inspect(self.con)
         columns_table = insp.get_columns(table_name)
         return columns_table
-    
-    # Read a SQL table and returns a DataFrame
-    def read_sql(self, my_query, dict_params=None):
-        if dict_params:  # Only execute if dict_params is not None or empty
+
+    # Read a SQL table and return a DataFrame
+    def read_sql(self, my_query, dict_params=None, column_case='original'):
+        if dict_params:
             for k, v in dict_params.items():
                 self.con.execute(f"SET @{k} := '{v}';")
-    
-        # Execute SQL
-        return pd.read_sql_query(sql=my_query, con=self.con)
-    
+
+        df = pd.read_sql_query(sql=my_query, con=self.con)
+
+        # Apply column name transformation if needed
+        df.columns = _apply_column_case(df.columns, column_case)
+
+        return df
+
     # Returns column names of table_name as list
-    def read_columns_table_db(self, table_name):
-        df = self.read_sql(f'SELECT * FROM {table_name} LIMIT 1;')
-        columns_name = df.columns.to_list()
-        return columns_name
+    def read_columns_table_db(self, table_name, column_case='original'):
+        df = self.read_sql(f'SELECT * FROM {table_name} LIMIT 1;', column_case=column_case)
+        return df.columns.to_list()
     
     # Add a column_name in table_name
     def add_column(self, table_name, column_name, column_type, existing_column=None):
