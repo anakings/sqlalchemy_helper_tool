@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, inspect, text
 import pandas as pd
 from urllib.parse import quote
 import math
+from sqlalchemy.pool import NullPool
 
 def _apply_column_case(columns, column_case):
     transformations = {
@@ -54,7 +55,11 @@ class DbApi:
                 url = f"mysql+{driver}://{self.username}:{self.password}@{self.server}:{self.port}/{self.database}"
             else:
                 url = f"mysql+{driver}://{self.username}:{self.password}@{self.server}/{self.database}"
-            engine = create_engine(url, connect_args=self.dict_params)
+            engine = create_engine(
+                url, 
+                connect_args=self.dict_params,
+                poolclass=NullPool  # disables pooling
+                )
             return engine
 
         elif self.dialect == 'mssql':
