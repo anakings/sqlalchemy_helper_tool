@@ -106,6 +106,19 @@ class DbApi:
             with conn.begin():
                 conn.execute(text(query))
 
+    def execute_many_query(self, query, list_tuples):
+        engine = self.connect()
+        raw_conn = engine.raw_connection()
+        try:
+            cur = raw_conn.cursor()
+            try:
+                cur.executemany(query, list_tuples)
+            finally:
+                cur.close()
+            raw_conn.commit()
+        finally:
+            raw_conn.close()
+
     # Checks if table_name exists
     def table_in_db(self, table_name):
         tables_list = self.con.table_names()
